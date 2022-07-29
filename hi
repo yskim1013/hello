@@ -1,0 +1,90 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+import os
+
+%matplotlib inline
+warnings.filterwarnings('ignore')
+
+!pip install finance-datareader
+
+import FinanceDataReader as fdr
+
+microsoft=fdr.DataReader('MSFT')
+
+STOCK_CODE='MSFT'
+
+stock=fdr.DataReader('MSFT')
+
+stock.head()
+
+stock.index
+
+plt.figure(figsize=(16,9))
+sns.lineplot(y=stock['Close'],x=stock.index)
+plt.xlabel('time')
+plt.ylabel('price')
+
+time_steps=[['1986','1990'],
+            ['1990','2000'],
+            ['2000','2010'],
+            ['2010','2015'],
+            ['2015','2020'],
+            ['2020','2022']]
+
+fig,axes=plt.subplots(3,3)
+fig.set_size_inches(16,9)
+for i in range(6):
+  ax=axes[i//2,i%2]
+  df=stock.loc[(stock.index>time_steps[i][0]) & (stock.index<time_steps[i][1])]
+  sns.lineplot(y=df['Close'],x=df.index,ax=ax)
+  ax.set_title(f'{time_steps[i][0]}~{time_steps[i][1]}')
+  ax.set_xlabel('time')
+  ax.set_ylabel('price')
+plt.tight_layout()
+plt.show()
+
+stock=fdr.DataReader(STOCK_CODE,'2022')
+
+! sudo pip install pystan==2.19.1.1 prophet
+
+from prophet import Prophet
+from prophet.plot import plot_plotly, plot_components_plotly
+
+stock['y']=stock['Close']
+stock['ds']=stock.index
+
+stock.head()
+
+m=Prophet()
+m.fit(stock)
+
+future=m.make_future_dataframe(periods=90)
+future.tail()
+
+forecast=m.predict(future)
+forecast.tail()
+
+m=Prophet()
+forecast=m.fit(stock).predict(future)
+fig=m.plot(forecast)
+
+forecast[['ds','yhat','yhat_lower','yhat_upper']].iloc[-40:-20]
+
+fig=m.plot(forecast)
+
+fig=plot_plotly(m,forecast)
+fig
+
+plot_components_plotly(m,forecast)
+
+from prophet.plot import add_changepoints_to_plot
+
+fig=m.plot(forecast)
+a= add_changepoints_to_plot(fig.gca(),m,forecast)
+
+m=Prophet(changepoint_prior_scale=0.01)
+forecast=m.fit(stock).predict(future)
+fig=m.plot(forecast)
